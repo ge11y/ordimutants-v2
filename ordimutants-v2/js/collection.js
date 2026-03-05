@@ -141,21 +141,37 @@ function getRareSatBadge(mutantNumber) {
   const badges = mutantBadges[mutantNumber.toString()];
   if (!badges || badges.length === 0) return '';
   
-  // Limit to 6 visible badges, show +N if more
-  const maxVisible = 6;
-  const visible = badges.slice(0, maxVisible);
-  const hidden = badges.length - maxVisible;
+  // Get rarest badge (first one, already sorted by rarity)
+  const rarestSlug = badges[0];
+  const badgeImg = BADGE_IMAGE_MAP[rarestSlug] || 'badge_01.png';
+  const isBlack = rarestSlug === 'paliblock_palindrome';
+  const style = isBlack ? 'filter: brightness(0) grayscale(100%);' : '';
   
-  const badgesHtml = visible.map(slug => {
-    const badgeImg = BADGE_IMAGE_MAP[slug] || 'badge_01.png';
-    const isBlack = slug === 'paliblock_palindrome';
-    const style = isBlack ? 'filter: brightness(0) grayscale(100%);' : '';
-    return `<img class="sat-badge-img" src="badges/${badgeImg}" title="${humanizeSlug(slug)}" style="width:24px;height:24px;vertical-align:middle;margin:1px;${style}">`;
+  // Build all badges HTML for hover popup
+  const allBadgesHtml = badges.map(slug => {
+    const img = BADGE_IMAGE_MAP[slug] || 'badge_01.png';
+    const black = slug === 'paliblock_palindrome';
+    return `<div class="badge-popup-item" style="${black ? 'filter: brightness(0) grayscale(100%);' : ''}">
+      <img src="badges/${img}" style="width:32px;height:32px;">
+      <span>${humanizeSlug(slug)}</span>
+    </div>`;
   }).join('');
   
-  const hiddenHtml = hidden > 0 ? `<span class="sat-badge-more">+${hidden}</span>` : '';
+  // If only 1 badge, just show it without popup
+  if (badges.length === 1) {
+    return `<img class="sat-badge-single" src="badges/${badgeImg}" title="${humanizeSlug(rarestSlug)}" style="${style}width:28px;height:28px;">`;
+  }
   
-  return badgesHtml + hiddenHtml;
+  // Multiple badges - show stack with hover popup
+  return `<div class="sat-badge-stack">
+    <img class="sat-badge-main" src="badges/${badgeImg}" title="${humanizeSlug(rarestSlug)} (${badges.length} total)" style="${style}width:28px;height:28px;">
+    <span class="sat-badge-count">+${badges.length - 1}</span>
+    <div class="sat-badge-popup">
+      <div class="badge-popup-title">All Badges</div>
+      ${allBadgesHtml}
+    </div>
+  </div>`;
+}
 }
 
 function renderCollection() {
@@ -184,12 +200,12 @@ function renderCollection() {
       <div class="mutant-card" style="border-left: 3px solid ${cfg.color}">
         <div class="mutant-header">
           <span class="mutant-rank">#${m.rank}</span>
-          ${satBadge}
         </div>
         <div class="mutant-image">
           <img src="${imgUrl}" alt="${m.name}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect fill=%22%23111%22 width=%22100%22 height=%22100%22/><text x=%2250%22 y=%2255%22 text-anchor=%22middle%22 fill=%22${cfg.color.replace('#','')}%22 font-size=%2240%22>${cfg.icon}</text></svg>'" />
+          <div class="mutant-badges-bottom">${satBadge}</div>
         </div>
-        <div class="mutant-name">${m.name || 'OrdiMutant'}${satNum ? '#'+satNum : ''}</div>
+        <div class="mutant-name">${m.name || 'OrdiMutant'}</div>
         <div class="mutant-inscription">${m.id.substring(0, 22)}...</div>
         <div class="mutant-score">Score: ${m.rarityScore?.toFixed(1) || 'N/A'}</div>
         <div class="mutant-traits">${traitsHtml}</div>
