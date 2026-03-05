@@ -61,6 +61,29 @@ const slugToKey = {
   'common': 'Common'
 };
 
+// Badge image mapping (slug -> badge filename)
+const BADGE_IMAGE_MAP = {
+  'vintage': 'badge_02.png',         // Golden clock
+  'silk_road': 'badge_03.png',       // Camel
+  'hitman': 'badge_04.png',          // Red crosshair/target
+  'pizza': 'badge_05.png',           // Pizza slice
+  'jpeg': 'badge_06.png',             // Polaroid camera
+  'nakamoto': 'badge_08.png',         // Hooded figure
+  'block_9': 'badge_10.png',         // Number "9"
+  'block_286': 'badge_11.png',        // "286" text
+  'black_uncommon': 'badge_12.png',  // Black diamond
+  'first_transaction': 'badge_16.png', // Triangle symbol
+  'palindrome': 'badge_15.png',      // Rainbow butterfly
+  'paliblock_palindrome': 'badge_15.png', // Same butterfly (tinted black via CSS)
+  'block_666': 'badge_07.png',        // Demon armor
+  'omega': 'badge_14.png',            // Purple gem
+  'alpha': 'badge_01.png',            // Silver coin/shield
+  'uncommon': 'badge_13.png',         // Bread/rocks
+  'block_78': 'badge_17.png',         // Brown gem
+  'block_9_450x': 'badge_10.png',    // Number 9
+  'common': 'badge_01.png',           // Default silver coin
+};
+
 // Humanize slug for tooltip
 function humanizeSlug(slug) {
   return slug.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
@@ -124,9 +147,10 @@ function getRareSatBadge(mutantNumber) {
   const hidden = badges.length - maxVisible;
   
   const badgesHtml = visible.map(slug => {
-    const key = slugToKey[slug] || slug;
-    const cfg = satBadgeConfig[key] || { icon: '?', color: '#888' };
-    return `<span class="sat-badge" style="background: ${cfg.color}" title="${humanizeSlug(slug)}">${cfg.icon}</span>`;
+    const badgeImg = BADGE_IMAGE_MAP[slug] || 'badge_01.png';
+    const isBlack = slug === 'paliblock_palindrome';
+    const style = isBlack ? 'filter: brightness(0) grayscale(100%);' : '';
+    return `<img class="sat-badge-img" src="badges/${badgeImg}" title="${humanizeSlug(slug)}" style="width:24px;height:24px;vertical-align:middle;margin:1px;${style}">`;
   }).join('');
   
   const hiddenHtml = hidden > 0 ? `<span class="sat-badge-more">+${hidden}</span>` : '';
