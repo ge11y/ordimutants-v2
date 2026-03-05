@@ -1,0 +1,15 @@
+{
+  "name": "nft-figurine-landing",
+  "version": "1.0.0",
+  "description": "NFT Figurine Generator Landing Page",
+  "scripts": {
+    "dev": "npx serve .",
+    "start": "npx serve . -p 3000"
+  },
+  "dependencies": {
+    "three": "^0.160.0"
+  },
+  "devDependencies": {
+    "serve": "^14.2.0"
+  }
+}

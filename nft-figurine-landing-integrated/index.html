@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NFT Figurine Generator | Turn Images into 3D Prints</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            dark: { 900: '#0a0a0f', 800: '#12121a', 700: '#1a1a24', 600: '#22222e' },
+            accent: { 500: '#8b5cf6', 400: '#a78bfa', 300: '#c4b5fd' },
+            neon: { 500: '#06b6d4', 400: '#22d3ee' }
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['Space Grotesk', 'sans-serif']
+          },
+          animation: {
+            'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            'float': 'float 6s ease-in-out infinite'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    * { scrollbar-width: thin; scrollbar-color: #8b5cf6 #12121a; }
+    body { background: #0a0a0f; color: #e2e8f0; }
+    .gradient-text {
+      background: linear-gradient(135deg, #8b5cf6, #06b6d4);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .glow { box-shadow: 0 0 40px rgba(139, 92, 246, 0.3); }
+    .glow-cyan { box-shadow: 0 0 30px rgba(6, 182, 212, 0.4); }
+    .card {
+      background: linear-gradient(145deg, #12121a, #1a1a24);
+      border: 1px solid #2a2a3a;
+    }
+    .card:hover { border-color: #8b5cf6; }
+    .btn-primary {
+      background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+      transition: all 0.3s ease;
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(139, 92, 246, 0.4); }
+    .btn-secondary {
+      background: transparent;
+      border: 2px solid #06b6d4;
+      color: #06b6d4;
+    }
+    .btn-secondary:hover { background: #06b6d4; color: #0a0a0f; }
+    .upload-zone {
+      border: 2px dashed #3a3a4a;
+      transition: all 0.3s ease;
+    }
+    .upload-zone:hover, .upload-zone.dragover {
+      border-color: #8b5cf6;
+      background: rgba(139, 92, 246, 0.05);
+    }
+    #canvas-container canvas { width: 100% !important; height: 100% !important; }
+    .progress-bar { transition: width 0.5s ease; }
+    .loader {
+      border: 3px solid #1a1a24;
+      border-top: 3px solid #8b5cf6;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+  </style>
+</head>
+<body class="min-h-screen">
+
+  <!-- Nav -->
+  <nav class="fixed top-0 left-0 right-0 z-50 bg-dark-900/80 backdrop-blur-lg border-b border-white/5">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-accent-500 to-neon-500 flex items-center justify-center text-xl font-bold">🧪</div>
+        <span class="font-display text-xl font-bold">Figurine<span class="gradient-text">AI</span></span>
+      </div>
+      <div class="flex items-center gap-6 text-sm text-gray-400">
+        <a href="#how-it-works" class="hover:text-white transition">How it Works</a>
+        <a href="#preview" class="hover:text-white transition">Preview</a>
+        <a href="#pricing" class="hover:text-white transition">Pricing</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="pt-32 pb-20 px-6">
+    <div class="max-w-4xl mx-auto text-center">
+      <div class="inline-flex items-center gap-2 bg-accent-500/10 border border-accent-500/20 rounded-full px-4 py-1.5 text-sm text-accent-400 mb-8">
+        <span class="w-2 h-2 rounded-full bg-accent-500 animate-pulse"></span>
+        AI-Powered 3D Reconstruction
+      </div>
+      <h1 class="font-display text-5xl md:text-6xl font-bold mb-6 leading-tight">
+        Turn Your Images Into<br>
+        <span class="gradient-text">3D Figurines</span>
+      </h1>
+      <p class="text-gray-400 text-lg mb-10 max-w-2xl mx-auto">
+        Upload 3-6 photos of any character or object. Our AI merges multiple views into a single, print-ready 3D model.
+      </p>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <a href="#upload" class="btn-primary px-8 py-4 rounded-xl font-semibold text-lg">Start Creating →</a>
+        <a href="#preview" class="btn-secondary px-8 py-4 rounded-xl font-semibold text-lg">See Demo</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Upload Section -->
+  <section id="upload" class="py-20 px-6 bg-dark-800/50">
+    <div class="max-w-3xl mx-auto">
+      <h2 class="font-display text-3xl font-bold text-center mb-4">Upload Your Images</h2>
+      <p class="text-gray-400 text-center mb-8">Upload 3-6 images from different angles for best results</p>
+      
+      <div id="drop-zone" class="upload-zone rounded-2xl p-12 text-center cursor-pointer">
+        <input type="file" id="file-input" multiple accept="image/*" class="hidden">
+        <div id="upload-prompt">
+          <div class="text-5xl mb-4">📤</div>
+          <p class="text-xl font-semibold mb-2">Drag & drop images here</p>
+          <p class="text-gray-500">or click to browse</p>
+          <p class="text-sm text-accent-400 mt-4">3-6 images recommended (JPG, PNG, WebP)</p>
+        </div>
+        
+        <!-- Preview Grid -->
+        <div id="preview-grid" class="hidden">
+          <div class="grid grid-cols-3 gap-4 mb-6" id="image-grid"></div>
+          <div class="flex gap-4 justify-center">
+            <button id="add-more-btn" class="text-accent-400 hover:text-accent-300 text-sm">+ Add more</button>
+            <button id="clear-btn" class="text-gray-500 hover:text-red-400 text-sm">Clear all</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-6 text-center">
+        <button id="generate-btn" class="btn-primary px-10 py-4 rounded-xl font-bold text-lg opacity-50 cursor-not-allowed" disabled>
+          Generate Figurine
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Processing -->
+  <section id="processing" class="py-20 px-6 hidden">
+    <div class="max-w-2xl mx-auto text-center">
+      <div class="loader mx-auto mb-8"></div>
+      <h2 class="font-display text-2xl font-bold mb-4">Generating Your Figurine...</h2>
+      
+      <div class="card rounded-xl p-6 mb-6">
+        <div class="space-y-4">
+          <div class="flex items-center gap-4">
+            <div id="step-1-dot" class="w-3 h-3 rounded-full bg-green-500"></div>
+            <span id="step-1-text" class="text-gray-400">Uploading images...</span>
+          </div>
+          <div class="flex items-center gap-4">
+            <div id="step-2-dot" class="w-3 h-3 rounded-full bg-gray-600"></div>
+            <span id="step-2-text" class="text-gray-500">Removing backgrounds</span>
+          </div>
+          <div class="flex items-center gap-4">
+            <div id="step-3-dot" class="w-3 h-3 rounded-full bg-gray-600"></div>
+            <span id="step-3-text" class="text-gray-500">Generating 3D meshes</span>
+          </div>
+          <div class="flex items-center gap-4">
+            <div id="step-4-dot" class="w-3 h-3 rounded-full bg-gray-600"></div>
+            <span id="step-4-text" class="text-gray-500">Merging & optimizing</span>
+          </div>
+          <div class="flex items-center gap-4">
+            <div id="step-5-dot" class="w-3 h-3 rounded-full bg-gray-600"></div>
+            <span id="step-5-text" class="text-gray-500">Preparing for download</span>
+          </div>
+        </div>
+        
+        <div class="mt-6 bg-dark-900 rounded-lg h-2 overflow-hidden">
+          <div id="progress-bar" class="progress-bar h-full bg-gradient-to-r from-accent-500 to-neon-500" style="width: 0%"></div>
+        </div>
+        <p id="progress-text" class="text-sm text-gray-500 mt-2">0% complete</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Result / Preview -->
+  <section id="preview" class="py-20 px-6 hidden">
+    <div class="max-w-6xl mx-auto">
+      <h2 class="font-display text-3xl font-bold text-center mb-8">Your Figurine is Ready!</h2>
+      
+      <div class="grid lg:grid-cols-2 gap-8">
+        <!-- 3D Viewer -->
+        <div class="card rounded-2xl overflow-hidden">
+          <div class="p-4 border-b border-white/5 flex items-center justify-between">
+            <span class="font-semibold">3D Preview</span>
+            <span class="text-xs text-gray-500">Drag to rotate • Scroll to zoom</span>
+          </div>
+          <div id="canvas-container" class="h-96 bg-dark-900"></div>
+        </div>
+        
+        <!-- Info & Download -->
+        <div class="space-y-6">
+          <div class="card rounded-2xl p-6">
+            <h3 class="font-display text-xl font-bold mb-4">Figurine Details</h3>
+            <div class="space-y-3 text-sm">
+              <div class="flex justify-between">
+                <span class="text-gray-400">Height</span>
+                <span class="font-semibold">80mm</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-400">Base</span>
+                <span class="font-semibold">5mm thick</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-400">Format</span>
+                <span class="font-semibold">Watertight STL</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="card rounded-2xl p-6">
+            <h3 class="font-display text-xl font-bold mb-4">Download</h3>
+            <div class="space-y-3">
+              <button class="btn-primary w-full py-4 rounded-xl font-bold flex items-center justify-center gap-2">
+                <span>⬇️</span> Download STL (3D Print)
+              </button>
+              <button class="btn-secondary w-full py-4 rounded-xl font-bold flex items-center justify-center gap-2">
+                <span>🌐</span> Download GLB (Web Preview)
+              </button>
+            </div>
+            <p class="text-xs text-gray-500 mt-4 text-center">Print settings: 0.1-0.2mm layers, 10-15% infill, supports enabled</p>
+          </div>
+          
+          <div class="card rounded-2xl p-6">
+            <h3 class="font-display text-xl font-bold mb-4">Create Another?</h3>
+            <button id="new-figurine-btn" class="w-full border border-gray-600 text-gray-300 py-3 rounded-xl hover:bg-white/5 transition">
+              Start New Project
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How It Works -->
+  <section id="how-it-works" class="py-20 px-6">
+    <div class="max-w-5xl mx-auto">
+      <h2 class="font-display text-3xl font-bold text-center mb-12">How It Works</h2>
+      
+      <div class="grid md:grid-cols-3 gap-8">
+        <div class="text-center">
+          <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-accent-500/20 flex items-center justify-center text-2xl">📷</div>
+          <h3 class="font-bold mb-2">1. Upload Photos</h3>
+          <p class="text-gray-400 text-sm">Take 3-6 photos from different angles (front, sides, back)</p>
+        </div>
+        <div class="text-center">
+          <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-neon-500/20 flex items-center justify-center text-2xl">🤖</div>
+          <h3 class="font-bold mb-2">2. AI Processing</h3>
+          <p class="text-gray-400 text-sm">Our AI removes backgrounds, generates meshes, and merges them</p>
+        </div>
+        <div class="text-center">
+          <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-green-500/20 flex items-center justify-center text-2xl">🖨️</div>
+          <h3 class="font-bold mb-2">3. Print</h3>
+          <p class="text-gray-400 text-sm">Download your print-ready STL and print on any 3D printer</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pricing -->
+  <section id="pricing" class="py-20 px-6 bg-dark-800/50">
+    <div class="max-w-4xl mx-auto">
+      <h2 class="font-display text-3xl font-bold text-center mb-12">Simple Pricing</h2>
+      
+      <div class="grid md:grid-cols-3 gap-6">
+        <div class="card rounded-2xl p-6 text-center">
+          <h3 class="font-bold text-lg mb-2">Starter</h3>
+          <div class="text-4xl font-bold gradient-text mb-4">$9<span class="text-lg text-gray-500">/fig</span></div>
+          <ul class="text-sm text-gray-400 space-y-2 mb-6">
+            <li>3 images</li>
+            <li>Standard resolution</li>
+            <li>48h delivery</li>
+          </ul>
+          <button class="w-full border border-accent-500 text-accent-400 py-2 rounded-lg hover:bg-accent-500 hover:text-white transition">Select</button>
+        </div>
+        
+        <div class="card rounded-2xl p-6 text-center glow border-accent-500/50">
+          <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-accent-500 text-xs px-3 py-1 rounded-full">Popular</div>
+          <h3 class="font-bold text-lg mb-2">Pro</h3>
+          <div class="text-4xl font-bold gradient-text mb-4">$19<span class="text-lg text-gray-500">/fig</span></div>
+          <ul class="text-sm text-gray-400 space-y-2 mb-6">
+            <li>6 images</li>
+            <li>High resolution</li>
+            <li>24h delivery</li>
+            <li>GLB preview included</li>
+          </ul>
+          <button class="w-full bg-accent-500 text-white py-2 rounded-lg hover:bg-accent-400 transition">Select</button>
+        </div>
+        
+        <div class="card rounded-2xl p-6 text-center">
+          <h3 class="font-bold text-lg mb-2">Studio</h3>
+          <div class="text-4xl font-bold gradient-text mb-4">$49<span class="text-lg text-gray-500">/fig</span></div>
+          <ul class="text-sm text-gray-400 space-y-2 mb-6">
+            <li>Unlimited revisions</li>
+            <li>Premium resolution</li>
+            <li>Same day</li>
+            <li>Multiple formats</li>
+          </ul>
+          <button class="w-full border border-accent-500 text-accent-400 py-2 rounded-lg hover:bg-accent-500 hover:text-white transition">Select</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="py-12 px-6 border-t border-white/5">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-accent-500 to-neon-500"></div>
+        <span class="font-display font-bold">FigurineAI</span>
+      </div>
+      <p class="text-gray-500 text-sm">© 2026 FigurineAI. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

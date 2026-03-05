@@ -1,0 +1,358 @@
+// NFT Figurine Generator - Main Application Logic
+
+// ====================
+// State
+// ====================
+let uploadedImages = [];
+let isProcessing = false;
+const API_BASE = "http://127.0.0.1:8000";
+const POLL_MS = 2000;
+
+
+// ====================
+// DOM Elements
+// ====================
+const dropZone = document.getElementById('drop-zone');
+const fileInput = document.getElementById('file-input');
+const uploadPrompt = document.getElementById('upload-prompt');
+const previewGrid = document.getElementById('preview-grid');
+const imageGrid = document.getElementById('image-grid');
+const generateBtn = document.getElementById('generate-btn');
+const addMoreBtn = document.getElementById('add-more-btn');
+const clearBtn = document.getElementById('clear-btn');
+
+// ====================
+// Event Listeners
+// ====================
+
+// Drop zone click
+dropZone.addEventListener('click', () => fileInput.click());
+
+// File input change
+fileInput.addEventListener('change', handleFiles);
+
+// Drag & drop
+dropZone.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  dropZone.classList.add('dragover');
+});
+
+dropZone.addEventListener('dragleave', () => {
+  dropZone.classList.remove('dragover');
+});
+
+dropZone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  handleFiles({ target: { files: e.dataTransfer.files } });
+});
+
+// Add more button
+addMoreBtn.addEventListener('click', () => fileInput.click());
+
+// Clear button
+clearBtn.addEventListener('click', clearImages);
+
+// Generate button
+generateBtn.addEventListener('click', startProcessing);
+
+// New figurine button
+document.getElementById('new-figurine-btn')?.addEventListener('click', resetApp);
+
+// ====================
+// File Handling
+// ====================
+function handleFiles(e) {
+  const files = Array.from(e.target.files);
+  
+  // Validate
+  const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+  const invalid = files.filter(f => !validTypes.includes(f.type));
+  if (invalid.length) {
+    alert('Please upload only JPG, PNG, or WebP images');
+    return;
+  }
+  
+  // Check max
+  if (uploadedImages.length + files.length > 6) {
+    alert('Maximum 6 images allowed');
+    return;
+  }
+  
+  // Add files
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      uploadedImages.push({
+        file,
+        dataUrl: e.target.result
+      });
+      updatePreview();
+    };
+    reader.readAsDataURL(file);
+  });
+  
+  // Reset input
+  fileInput.value = '';
+}
+
+function updatePreview() {
+  if (uploadedImages.length === 0) {
+    uploadPrompt.classList.remove('hidden');
+    previewGrid.classList.add('hidden');
+    generateBtn.disabled = true;
+    generateBtn.classList.add('opacity-50', 'cursor-not-allowed');
+    return;
+  }
+  
+  uploadPrompt.classList.add('hidden');
+  previewGrid.classList.remove('hidden');
+  
+  // Render grid
+  imageGrid.innerHTML = uploadedImages.map((img, i) => `
+    <div class="relative aspect-square rounded-lg overflow-hidden bg-dark-700">
+      <img src="${img.dataUrl}" class="w-full h-full object-cover">
+      <button onclick="removeImage(${i})" class="absolute top-2 right-2 w-6 h-6 bg-red-500 text-white rounded-full text-sm hover:bg-red-600">×</button>
+    </div>
+  `).join('');
+  
+  // Enable generate if 3+
+  if (uploadedImages.length >= 3) {
+    generateBtn.disabled = false;
+    generateBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+  } else {
+    generateBtn.disabled = true;
+    generateBtn.classList.add('opacity-50', 'cursor-not-allowed');
+  }
+}
+
+function removeImage(index) {
+  uploadedImages.splice(index, 1);
+  updatePreview();
+}
+
+function clearImages() {
+  uploadedImages = [];
+  updatePreview();
+}
+
+// ====================
+// Processing Simulation
+// ====================
+function startProcessing() {
+  if (uploadedImages.length < 3) return;
+  
+  // Switch to processing view
+  document.getElementById('upload').classList.add('hidden');
+  document.getElementById('processing').classList.remove('hidden');
+  document.getElementById('processing').scrollIntoView({ behavior: 'smooth' });
+  
+  // Simulate processing steps
+  simulateProcessing();
+}
+
+function simulateProcessing() {
+  const steps = [
+    { id: 1, text: 'Uploading images...', time: 1500 },
+    { id: 2, text: 'Removing backgrounds', time: 3000 },
+    { id: 3, text: 'Generating 3D meshes', time: 6000 },
+    { id: 4, text: 'Merging & optimizing', time: 8000 },
+    { id: 5, text: 'Preparing for download', time: 10000 }
+  ];
+  
+  let progress = 0;
+  let currentStep = 0;
+  
+  const interval = setInterval(() => {
+    progress += 2;
+    document.getElementById('progress-bar').style.width = progress + '%';
+    document.getElementById('progress-text').textContent = progress + '% complete';
+    
+    // Check if we should advance to next step
+    if (currentStep < steps.length && progress >= (currentStep + 1) * 20) {
+      // Update current step dot
+      if (currentStep > 0) {
+        document.getElementById(`step-${currentStep}-dot`).classList.remove('bg-gray-600');
+        document.getElementById(`step-${currentStep}-dot`).classList.add('bg-green-500');
+        document.getElementById(`step-${currentStep}-text`).classList.remove('text-gray-500');
+        document.getElementById(`step-${currentStep}-text`).classList.add('text-gray-300');
+      }
+      
+      // Set next step
+      if (currentStep < steps.length) {
+        document.getElementById(`step-${currentStep + 1}-dot`).classList.remove('bg-gray-600');
+        document.getElementById(`step-${currentStep + 1}-dot`).classList.add('bg-accent-500', 'animate-pulse');
+        document.getElementById(`step-${currentStep + 1}-text`).classList.remove('text-gray-500');
+        document.getElementById(`step-${currentStep + 1}-text`).classList.add('text-accent-400');
+      }
+      
+      currentStep++;
+    }
+    
+    if (progress >= 100) {
+      clearInterval(interval);
+      
+      // Complete final step
+      document.getElementById('step-5-dot').classList.remove('bg-accent-500', 'animate-pulse');
+      document.getElementById('step-5-dot').classList.add('bg-green-500');
+      
+      // Show result after brief delay
+      setTimeout(() => {
+        showResult();
+      }, 1000);
+    }
+  }, 200);
+}
+
+function showResult() {
+  document.getElementById('processing').classList.add('hidden');
+  document.getElementById('preview').classList.remove('hidden');
+  document.getElementById('preview').scrollIntoView({ behavior: 'smooth' });
+  
+  // Initialize 3D viewer with demo model
+  init3DViewer();
+}
+
+function resetApp() {
+  uploadedImages = [];
+  updatePreview();
+  document.getElementById('preview').classList.add('hidden');
+  document.getElementById('upload').classList.remove('hidden');
+  document.getElementById('upload').scrollIntoView({ behavior: 'smooth' });
+}
+
+// ====================
+// Three.js 3D Viewer
+// ====================
+let scene, camera, renderer, controls, model;
+
+function init3DViewer() {
+  const container = document.getElementById('canvas-container');
+  if (!container) return;
+  
+  // Clear previous
+  container.innerHTML = '';
+  
+  // Scene
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x0a0a0f);
+  
+  // Camera
+  camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+  camera.position.set(0, 0, 3);
+  
+  // Renderer
+  renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(container.clientWidth, container.clientHeight);
+  renderer.setPixelRatio(window.devicePixelRatio);
+  container.appendChild(renderer.domElement);
+  
+  // Controls
+  controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.05;
+  
+  // Lights
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+  scene.add(ambientLight);
+  
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+  directionalLight.position.set(5, 5, 5);
+  scene.add(directionalLight);
+  
+  const directionalLight2 = new THREE.DirectionalLight(0x8b5cf6, 0.5);
+  directionalLight2.position.set(-5, -5, -5);
+  scene.add(directionalLight2);
+  
+  // Create demo figurine (abstract humanoid shape)
+  createDemoFigurine();
+  
+  // Animation loop
+  animate();
+  
+  // Handle resize
+  window.addEventListener('resize', onWindowResize);
+}
+
+function createDemoFigurine() {
+  const group = new THREE.Group();
+  
+  // Material
+  const material = new THREE.MeshStandardMaterial({
+      color: 0x8b5cf6,
+      metalness: 0.3,
+      roughness: 0.7
+    });
+  
+  // Body (cylinder)
+  const body = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.3, 0.25, 0.8, 32),
+    material
+  );
+  body.position.y = 0;
+  group.add(body);
+  
+  // Head (sphere)
+  const head = new THREE.Mesh(
+    new THREE.SphereGeometry(0.2, 32, 32),
+    material
+  );
+  head.position.y = 0.6;
+  group.add(head);
+  
+  // Arms
+  const armGeom = new THREE.CapsuleGeometry(0.06, 0.3, 4, 8);
+  const leftArm = new THREE.Mesh(armGeom, material);
+  leftArm.position.set(-0.35, 0.1, 0);
+  leftArm.rotation.z = Math.PI / 6;
+  group.add(leftArm);
+  
+  const rightArm = new THREE.Mesh(armGeom, material);
+  rightArm.position.set(0.35, 0.1, 0);
+  rightArm.rotation.z = -Math.PI / 6;
+  group.add(rightArm);
+  
+  // Legs
+  const legGeom = new THREE.CapsuleGeometry(0.08, 0.3, 4, 8);
+  const leftLeg = new THREE.Mesh(legGeom, material);
+  leftLeg.position.set(-0.15, -0.55, 0);
+  group.add(leftLeg);
+  
+  const rightLeg = new THREE.Mesh(legGeom, material);
+  rightLeg.position.set(0.15, -0.55, 0);
+  group.add(rightLeg);
+  
+  // Base (cylinder)
+  const baseMaterial = new THREE.MeshStandardMaterial({
+      color: 0x8b5cf6,
+      metalness: 0.3,
+      roughness: 0.7
+    });
+  const base = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.4, 0.4, 0.05, 32),
+    baseMaterial
+  );
+  base.position.y = -0.8;
+  group.add(base);
+  
+  scene.add(group);
+  model = group;
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+function onWindowResize() {
+  const container = document.getElementById('canvas-container');
+  if (!container || !camera || !renderer) return;
+  
+  camera.aspect = container.clientWidth / container.clientHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(container.clientWidth, container.clientHeight);
+}
+
+// Export for removeImage
+window.removeImage = removeImage;
